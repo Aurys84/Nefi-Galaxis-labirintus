@@ -12,7 +12,7 @@
       margin: 0;
       padding: 5px;
       overflow-x: hidden;
-      overflow-y: hidden; /* Megakadályozza a görgetést, ha a végjáték animációja nagyobb lenne */
+      overflow-y: hidden;
     }
 
     h1 {
@@ -73,18 +73,17 @@
       background: radial-gradient(circle at center, #15002b 0%, #02040a 100%);
     }
 
-    /* Végjáték felirat container */
     #endGameOverlay {
       position: absolute;
       top: 0; left: 0;
       width: 1080px; height: 540px;
-      background: radial-gradient(circle, rgba(0,255,255,0.2) 0%, rgba(2,4,10,0.9) 70%);
-      display: none; /* Alapból rejtve */
+      background: radial-gradient(circle, rgba(0,255,255,0.25) 0%, rgba(2,4,10,0.92) 70%);
+      display: none;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 100;
-      pointer-events: none; /* Ne zavarjon be kattintásnál */
+      pointer-events: none;
     }
 
     #endGameText {
@@ -94,7 +93,7 @@
       text-transform: uppercase;
       text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff, 0 0 60px #00ffcc;
       animation: pulseGlow 1.5s infinite alternate;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       line-height: 1.1;
       padding: 20px;
     }
@@ -173,7 +172,6 @@
 
     #plushieShelf {
       display: grid;
-      /* Megnövelt rács a 20 plüsshöz (4 oszlop x 5 sor) */
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
       min-height: 150px;
@@ -206,7 +204,6 @@
 
       <div class="windshield">
         <canvas id="flightCanvas" width="1080" height="540"></canvas>
-        <!-- Végjáték felirat overlay -->
         <div id="endGameOverlay">
           <div id="endGameText">KÜLDETÉS<br>TELJESÍTVE!</div>
           <div id="endGameSub">A GALAXIS MEGMENKÜLT!<br>Minden ereklyét begyűjtöttél.</div>
@@ -227,7 +224,6 @@
       </div>
     </div>
 
-    <!-- Külső plüss raktár / vitrin -->
     <div class="external-vitrine">
       <h3>GYŰJTŐI EREKLYÉK</h3>
       <div id="plushieShelf">
@@ -245,9 +241,8 @@
     let steps = parseInt(localStorage.getItem('matrix_steps')) || 0;
     let level = parseInt(localStorage.getItem('matrix_level')) || 1;
     let plushies = JSON.parse(localStorage.getItem('matrix_plushies')) || [];
-    let isGameOver = false; // Végjáték flag
+    let isGameOver = false;
 
-    // 20 darab gyűjthető ereklye (plüss, kristály, űrlény, stb.)
     const plushieData = [
       { icon: '🧸', name: 'Mátrix Maci' },
       { icon: '🤖', name: 'Cyber Droid' },
@@ -263,7 +258,7 @@
       { icon: '☄️', name: 'Üstökös Kő' },
       { icon: '🛰️', name: 'Műhold Vevő' },
       { icon: '⚛️', name: 'Atom Modul' },
-      { icon: '🌀', name: 'Fekete Lyuk Plüss' },
+      { icon: '🌀', name: 'Fekete Lyuk' },
       { icon: '🐌', name: 'Űrcsiga' },
       { icon: '🐢', name: 'Galaktikus Teknős' },
       { icon: '🐙', name: 'Világító Polip' },
@@ -316,4 +311,137 @@
         osc.stop(now + 0.45);
       } else if (type === 'hit') {
         osc.type = 'sawtooth';
-        osc.frequency.setValue
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.linearRampToValueAtTime(30, now + 0.3);
+        gainNode.gain.setValueAtTime(0.4, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'gate') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554.37, now + 0.12);
+        osc.frequency.setValueAtTime(659.25, now + 0.24);
+        osc.frequency.setValueAtTime(880, now + 0.36);
+        gainNode.gain.setValueAtTime(0.35, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+        osc.start(now);
+        osc.stop(now + 0.6);
+      }
+    }
+
+    let gridWidth = 20;
+    let gridHeight = 10;
+
+    let ship = { x: 10, y: 8, dir: 'UP' };
+    let obstacles = [];
+    let crystals = [];
+    let goal = { x: 10, y: 1 };
+    let animPulse = 0;
+
+    function initSector() {
+      obstacles = [];
+      crystals = [];
+      goal = { x: Math.floor(Math.random() * (gridWidth - 2)) + 1, y: 1 };
+
+      let safePath = {};
+      
+      let cPositions = [
+        { x: 4, y: 6 }, { x: 15, y: 6 },
+        { x: 3, y: 4 }, { x: 17, y: 4 },
+        { x: 7, y: 3 }, { x: 13, y: 3 },
+        { x: 10, y: 5 }
+      ];
+
+      cPositions.forEach((pos, idx) => {
+        let cx = Math.max(1, Math.min(gridWidth - 2, pos.x + (Math.floor(Math.random() * 3) - 1)));
+        let cy = Math.max(2, Math.min(gridHeight - 2, pos.y + (Math.floor(Math.random() * 3) - 1)));
+        let color = crystalColors[idx % crystalColors.length];
+        crystals.push({ x: cx, y: cy, color: color, collected: false });
+      });
+
+      let currentLoc = { x: ship.x, y: ship.y };
+      crystals.forEach(c => {
+        while (currentLoc.x !== c.x || currentLoc.y !== c.y) {
+          if (currentLoc.x < c.x) currentLoc.x++;
+          else if (currentLoc.x > c.x) currentLoc.x--;
+          else if (currentLoc.y < c.y) currentLoc.y++;
+          else if (currentLoc.y > c.y) currentLoc.y--;
+          safePath[`${currentLoc.x},${currentLoc.y}`] = true;
+        }
+      });
+
+      while (currentLoc.x !== goal.x || currentLoc.y !== goal.y) {
+        if (currentLoc.x < goal.x) currentLoc.x++;
+        else if (currentLoc.x > goal.x) currentLoc.x--;
+        else if (currentLoc.y < goal.y) currentLoc.y++;
+        else if (currentLoc.y > goal.y) currentLoc.y--;
+        safePath[`${currentLoc.x},${currentLoc.y}`] = true;
+      }
+
+      safePath[`${ship.x},${ship.y}`] = true;
+      safePath[`${goal.x},${goal.y}`] = true;
+      crystals.forEach(c => safePath[`${c.x},${c.y}`] = true);
+
+      let count = 35 + (level * 5);
+      if (count > 75) count = 75;
+
+      for (let i = 0; i < count; i++) {
+        let ox = Math.floor(Math.random() * gridWidth);
+        let oy = Math.floor(Math.random() * (gridHeight - 1)) + 1;
+        let key = `${ox},${oy}`;
+        if (!safePath[key]) {
+          obstacles.push({ x: ox, y: oy });
+        }
+      }
+    }
+
+    function updateHUD() {
+      let collectedCount = crystals.filter(c => c.collected).length;
+      document.getElementById('scoreVal').innerText = score;
+      document.getElementById('crystalsVal').innerText = `${collectedCount}/${crystals.length}`;
+      document.getElementById('levelVal').innerText = level;
+
+      let shelf = document.getElementById('plushieShelf');
+      if (plushies.length === 0) {
+        shelf.innerHTML = '<div style="grid-column: span 4; color: #888; font-size: 0.75rem; text-align: center; margin-top: 30px;">1000 pontonként érkezik új ereklye!</div>';
+      } else {
+        shelf.innerHTML = '';
+        plushies.forEach(pIdx => {
+          let p = plushieData[pIdx];
+          let div = document.createElement('div');
+          div.className = 'plushie-item';
+          div.innerHTML = `${p.icon}<br><span style="font-size:0.45rem; color:#00ffcc;">${p.name}</span>`;
+          shelf.appendChild(div);
+        });
+      }
+
+      if (plushies.length >= plushieData.length) {
+        isGameOver = true;
+        document.getElementById('endGameOverlay').style.display = 'flex';
+      }
+
+      localStorage.setItem('matrix_score', score);
+      localStorage.setItem('matrix_steps', steps);
+      localStorage.setItem('matrix_level', level);
+      localStorage.setItem('matrix_plushies', JSON.stringify(plushies));
+    }
+
+    function drawSpaceship3D(cx, cy, size, dir, shipColor) {
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      if (dir === 'DOWN') ctx.rotate(Math.PI);
+      else if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
+      else if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.beginPath();
+      ctx.ellipse(0, size * 0.4, size * 0.8, size * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      let grad = ctx.createLinearGradient(-size, -size, size, size);
+      grad.addColorStop(0, shipColor);
+      grad.addColorStop(0.5, '#0088ff');
+      grad.addColorStop(1, '#002244');
+      ctx.fillStyle = grad
