@@ -12,6 +12,7 @@
       margin: 0;
       padding: 5px;
       overflow-x: hidden;
+      overflow-y: hidden; /* Megakadályozza a görgetést, ha a végjáték animációja nagyobb lenne */
     }
 
     h1 {
@@ -72,6 +73,48 @@
       background: radial-gradient(circle at center, #15002b 0%, #02040a 100%);
     }
 
+    /* Végjáték felirat container */
+    #endGameOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1080px; height: 540px;
+      background: radial-gradient(circle, rgba(0,255,255,0.2) 0%, rgba(2,4,10,0.9) 70%);
+      display: none; /* Alapból rejtve */
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none; /* Ne zavarjon be kattintásnál */
+    }
+
+    #endGameText {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff, 0 0 60px #00ffcc;
+      animation: pulseGlow 1.5s infinite alternate;
+      margin-bottom: 30px;
+      line-height: 1.1;
+      padding: 20px;
+    }
+
+    #endGameSub {
+      font-size: 1.5rem;
+      color: #00ffcc;
+      animation: textPulse 1s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff, 0 0 30px #00ffcc; }
+      to { text-shadow: 0 0 30px #00ffff, 0 0 60px #ff00ff, 0 0 90px #00ffcc; }
+    }
+
+    @keyframes textPulse {
+      from { opacity: 0.6; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
     .controls {
       display: grid;
       grid-template-columns: repeat(3, 65px);
@@ -130,19 +173,20 @@
 
     #plushieShelf {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      min-height: 120px;
+      /* Megnövelt rács a 20 plüsshöz (4 oszlop x 5 sor) */
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      min-height: 150px;
       align-content: start;
     }
 
     .plushie-item {
       background: rgba(0, 0, 0, 0.7);
       border: 1px solid #00ffcc;
-      border-radius: 8px;
-      padding: 6px;
+      border-radius: 6px;
+      padding: 4px;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       box-shadow: 0 0 6px rgba(0,255,204,0.3);
     }
   </style>
@@ -162,6 +206,11 @@
 
       <div class="windshield">
         <canvas id="flightCanvas" width="1080" height="540"></canvas>
+        <!-- Végjáték felirat overlay -->
+        <div id="endGameOverlay">
+          <div id="endGameText">KÜLDETÉS<br>TELJESÍTVE!</div>
+          <div id="endGameSub">A GALAXIS MEGMENKÜLT!<br>Minden ereklyét begyűjtöttél.</div>
+        </div>
       </div>
 
       <div class="controls">
@@ -180,9 +229,9 @@
 
     <!-- Külső plüss raktár / vitrin -->
     <div class="external-vitrine">
-      <h3>GYŰJTŐI PLÜSSÖK</h3>
+      <h3>GYŰJTŐI EREKLYÉK</h3>
       <div id="plushieShelf">
-        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">1000 pontonként érkezik új ereklye!</div>
+        <div style="grid-column: span 4; color: #888; font-size: 0.75rem; text-align: center; margin-top: 30px;">1000 pontonként érkezik új ereklye!</div>
       </div>
     </div>
 
@@ -196,7 +245,9 @@
     let steps = parseInt(localStorage.getItem('matrix_steps')) || 0;
     let level = parseInt(localStorage.getItem('matrix_level')) || 1;
     let plushies = JSON.parse(localStorage.getItem('matrix_plushies')) || [];
+    let isGameOver = false; // Végjáték flag
 
+    // 20 darab gyűjthető ereklye (plüss, kristály, űrlény, stb.)
     const plushieData = [
       { icon: '🧸', name: 'Mátrix Maci' },
       { icon: '🤖', name: 'Cyber Droid' },
@@ -205,7 +256,19 @@
       { icon: '🚀', name: 'Mini Űrsikló' },
       { icon: '⭐', name: 'Szuper Nova' },
       { icon: '💎', name: 'Kvarc Kristály' },
-      { icon: '👑', name: 'Labor Korona' }
+      { icon: '👑', name: 'Labor Korona' },
+      { icon: '🪐', name: 'Gyűrűs Bolygó' },
+      { icon: '🛸', name: 'UFO Barát' },
+      { icon: '👾', name: 'Pixeles Űrlény' },
+      { icon: '☄️', name: 'Üstökös Kő' },
+      { icon: '🛰️', name: 'Műhold Vevő' },
+      { icon: '⚛️', name: 'Atom Modul' },
+      { icon: '🌀', name: 'Fekete Lyuk Plüss' },
+      { icon: '🐌', name: 'Űrcsiga' },
+      { icon: '🐢', name: 'Galaktikus Teknős' },
+      { icon: '🐙', name: 'Világító Polip' },
+      { icon: '🕶️', name: 'Napszemüveg' },
+      { icon: '🏆', name: 'Bajnok Kupa' }
     ];
 
     const themes = [
@@ -253,338 +316,4 @@
         osc.stop(now + 0.45);
       } else if (type === 'hit') {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, now);
-        osc.frequency.linearRampToValueAtTime(30, now + 0.3);
-        gainNode.gain.setValueAtTime(0.4, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.start(now);
-        osc.stop(now + 0.3);
-      } else if (type === 'gate') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.setValueAtTime(554.37, now + 0.12);
-        osc.frequency.setValueAtTime(659.25, now + 0.24);
-        osc.frequency.setValueAtTime(880, now + 0.36);
-        gainNode.gain.setValueAtTime(0.35, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-        osc.start(now);
-        osc.stop(now + 0.6);
-      }
-    }
-
-    let gridWidth = 20;
-    let gridHeight = 10;
-
-    let ship = { x: 10, y: 8, dir: 'UP' };
-    let obstacles = [];
-    let crystals = [];
-    let goal = { x: 10, y: 1 };
-    let animPulse = 0;
-
-    function initSector() {
-      obstacles = [];
-      crystals = [];
-      goal = { x: Math.floor(Math.random() * (gridWidth - 2)) + 1, y: 1 };
-
-      let safePath = {};
-      
-      let cPositions = [
-        { x: 4, y: 6 }, { x: 15, y: 6 },
-        { x: 3, y: 4 }, { x: 17, y: 4 },
-        { x: 7, y: 3 }, { x: 13, y: 3 },
-        { x: 10, y: 5 }
-      ];
-
-      cPositions.forEach((pos, idx) => {
-        let cx = Math.max(1, Math.min(gridWidth - 2, pos.x + (Math.floor(Math.random() * 3) - 1)));
-        let cy = Math.max(2, Math.min(gridHeight - 2, pos.y + (Math.floor(Math.random() * 3) - 1)));
-        let color = crystalColors[idx % crystalColors.length];
-        crystals.push({ x: cx, y: cy, color: color, collected: false });
-      });
-
-      let currentLoc = { x: ship.x, y: ship.y };
-      crystals.forEach(c => {
-        while (currentLoc.x !== c.x || currentLoc.y !== c.y) {
-          if (currentLoc.x < c.x) currentLoc.x++;
-          else if (currentLoc.x > c.x) currentLoc.x--;
-          else if (currentLoc.y < c.y) currentLoc.y++;
-          else if (currentLoc.y > c.y) currentLoc.y--;
-          safePath[`${currentLoc.x},${currentLoc.y}`] = true;
-        }
-      });
-
-      while (currentLoc.x !== goal.x || currentLoc.y !== goal.y) {
-        if (currentLoc.x < goal.x) currentLoc.x++;
-        else if (currentLoc.x > goal.x) currentLoc.x--;
-        else if (currentLoc.y < goal.y) currentLoc.y++;
-        else if (currentLoc.y > goal.y) currentLoc.y--;
-        safePath[`${currentLoc.x},${currentLoc.y}`] = true;
-      }
-
-      safePath[`${ship.x},${ship.y}`] = true;
-      safePath[`${goal.x},${goal.y}`] = true;
-      crystals.forEach(c => safePath[`${c.x},${c.y}`] = true);
-
-      // Sokkal sűrűbb aszteroidamező (magasabb alap + szintekénti növekedés)
-      let count = 35 + (level * 5);
-      if (count > 75) count = 75;
-
-      for (let i = 0; i < count; i++) {
-        let ox = Math.floor(Math.random() * gridWidth);
-        let oy = Math.floor(Math.random() * (gridHeight - 1)) + 1;
-        let key = `${ox},${oy}`;
-        if (!safePath[key]) {
-          obstacles.push({ x: ox, y: oy });
-        }
-      }
-    }
-
-    function updateHUD() {
-      let collectedCount = crystals.filter(c => c.collected).length;
-      document.getElementById('scoreVal').innerText = score;
-      document.getElementById('crystalsVal').innerText = `${collectedCount}/${crystals.length}`;
-      document.getElementById('levelVal').innerText = level;
-
-      let shelf = document.getElementById('plushieShelf');
-      if (plushies.length === 0) {
-        shelf.innerHTML = '<div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">1000 pontonként érkezik új ereklye!</div>';
-      } else {
-        shelf.innerHTML = '';
-        plushies.forEach(pIdx => {
-          let p = plushieData[pIdx];
-          let div = document.createElement('div');
-          div.className = 'plushie-item';
-          div.innerHTML = `${p.icon}<br><span style="font-size:0.55rem; color:#00ffcc;">${p.name}</span>`;
-          shelf.appendChild(div);
-        });
-      }
-
-      localStorage.setItem('matrix_score', score);
-      localStorage.setItem('matrix_steps', steps);
-      localStorage.setItem('matrix_level', level);
-      localStorage.setItem('matrix_plushies', JSON.stringify(plushies));
-    }
-
-    function drawSpaceship3D(cx, cy, size, dir, shipColor) {
-      ctx.save();
-      ctx.translate(cx, cy);
-
-      if (dir === 'DOWN') ctx.rotate(Math.PI);
-      else if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
-      else if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
-
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      ctx.beginPath();
-      ctx.ellipse(0, size * 0.4, size * 0.8, size * 0.4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      let grad = ctx.createLinearGradient(-size, -size, size, size);
-      grad.addColorStop(0, shipColor);
-      grad.addColorStop(0.5, '#0088ff');
-      grad.addColorStop(1, '#002244');
-      ctx.fillStyle = grad;
-
-      ctx.beginPath();
-      ctx.moveTo(0, -size * 1.2);
-      ctx.lineTo(-size * 0.8, size * 0.9);
-      ctx.lineTo(-size * 0.3, size * 0.6);
-      ctx.lineTo(0, size * 0.9);
-      ctx.lineTo(size * 0.3, size * 0.6);
-      ctx.lineTo(size * 0.8, size * 0.9);
-      ctx.closePath();
-      ctx.shadowBlur = 18;
-      ctx.shadowColor = shipColor;
-      ctx.fill();
-
-      ctx.fillStyle = '#ffaa00';
-      ctx.beginPath();
-      ctx.arc(0, -size * 0.2, size * 0.28, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#ff0066';
-      ctx.shadowColor = '#ff0066';
-      ctx.beginPath();
-      ctx.moveTo(-size * 0.3, size * 0.9);
-      ctx.lineTo(0, size * 1.5);
-      ctx.lineTo(size * 0.3, size * 0.9);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    function drawFlight() {
-      let theme = themes[(level - 1) % themes.length];
-      canvas.style.background = `radial-gradient(circle at center, ${theme.bg} 0%, #02040a 100%)`;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let tileSize = canvas.width / gridWidth;
-      animPulse += 0.08;
-
-      ctx.strokeStyle = theme.grid;
-      ctx.lineWidth = 1.2;
-      for (let i = 0; i <= gridWidth; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * tileSize, 0);
-        ctx.lineTo(i * tileSize, canvas.height);
-        ctx.stroke();
-      }
-      for (let j = 0; j <= gridHeight; j++) {
-        ctx.beginPath();
-        ctx.moveTo(0, j * tileSize);
-        ctx.lineTo(canvas.width, j * tileSize);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < 50; i++) {
-        let sx = (i * 31 + steps * 3) % canvas.width;
-        let sy = (i * 47 + steps * 6) % canvas.height;
-        ctx.fillRect(sx, sy, 1.8, 1.8);
-      }
-
-      let gateX = (goal.x + 0.5) * tileSize;
-      let gateY = (goal.y + 0.5) * tileSize;
-      let allCollected = crystals.every(c => c.collected);
-
-      ctx.shadowBlur = allCollected ? 35 : 15;
-      ctx.shadowColor = allCollected ? '#00ffcc' : '#ff0055';
-      ctx.fillStyle = allCollected ? '#00ffcc' : '#ff0033';
-      ctx.beginPath();
-      let pulseSize = tileSize / 2.2 + (allCollected ? Math.sin(animPulse) * 5 : 0);
-      ctx.arc(gateX, gateY, Math.max(5, pulseSize), 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(gateX, gateY, tileSize / 5.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      crystals.forEach(c => {
-        if (!c.collected) {
-          let cx = (c.x + 0.5) * tileSize;
-          let cy = (c.y + 0.5) * tileSize + Math.sin(animPulse * 2 + c.x) * 3;
-
-          ctx.fillStyle = c.color;
-          ctx.shadowBlur = 18;
-          ctx.shadowColor = c.color;
-          ctx.beginPath();
-          ctx.arc(cx, cy, tileSize / 3.0, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#ffffff';
-          ctx.beginPath();
-          ctx.arc(cx, cy, tileSize / 6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-
-      obstacles.forEach(obs => {
-        let ox = (obs.x + 0.5) * tileSize;
-        let oy = (obs.y + 0.5) * tileSize;
-
-        let oGrad = ctx.createRadialGradient(ox - 3, oy - 3, 2, ox, oy, tileSize / 2.5);
-        oGrad.addColorStop(0, theme.ast);
-        oGrad.addColorStop(0.5, '#0055ff');
-        oGrad.addColorStop(1, '#001133');
-
-        ctx.fillStyle = oGrad;
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = theme.ast;
-        ctx.beginPath();
-        ctx.arc(ox, oy, tileSize / 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      let cx = (ship.x + 0.5) * tileSize;
-      let cy = (ship.y + 0.5) * tileSize;
-      drawSpaceship3D(cx, cy, tileSize / 2.2, ship.dir, theme.ship);
-      ctx.shadowBlur = 0;
-    }
-
-    function moveShip(dx, dy) {
-      if (dx === 0 && dy === -1) ship.dir = 'UP';
-      else if (dx === 0 && dy === 1) ship.dir = 'DOWN';
-      else if (dx === -1 && dy === 0) ship.dir = 'LEFT';
-      else if (dx === 1 && dy === 0) ship.dir = 'RIGHT';
-
-      let nx = ship.x + dx;
-      let ny = ship.y + dy;
-
-      if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
-        playSound('move');
-        let hit = obstacles.some(o => o.x === nx && o.y === ny);
-        if (hit) {
-          playSound('hit');
-          score = Math.max(0, score - 10);
-          alert("Ütközés az aszteroidával! Vissza a bázisra.");
-          ship.x = 10; ship.y = 8; ship.dir = 'UP';
-          initSector();
-        } else {
-          ship.x = nx;
-          ship.y = ny;
-          steps++;
-
-          crystals.forEach(c => {
-            if (!c.collected && c.x === ship.x && c.y === ship.y) {
-              c.collected = true;
-              score += 25;
-              playSound('crystal');
-            }
-          });
-
-          if (ship.x === goal.x && ship.y === goal.y) {
-            let allCollected = crystals.every(c => c.collected);
-            if (allCollected) {
-              playSound('gate');
-              score += 150;
-              level++;
-              checkPlushieReward();
-              alert("Fantasztikus panoráma navigáció! Kapu kinyitva, új galaktikus szektor elérve!");
-              ship.x = 10; ship.y = 8; ship.dir = 'UP';
-              initSector();
-            } else {
-              alert("A galaktikus kapu zárva van! Előbb gyűjtsd össze az összes energiakristályt!");
-            }
-          }
-        }
-        updateHUD();
-        drawFlight();
-      }
-    }
-
-    function checkPlushieReward() {
-      // 1000 pontonként ad új plüss ereklyét
-      let expectedCount = Math.floor(score / 1000);
-      while (plushies.length < expectedCount && plushies.length < plushieData.length) {
-        plushies.push(plushies.length);
-      }
-    }
-
-    function resetGameData() {
-      if (confirm("Biztosan nullázod a repülési naplót?")) {
-        localStorage.clear();
-        score = 0; steps = 0; level = 1; plushies = [];
-        ship = { x: 10, y: 8, dir: 'UP' };
-        initSector();
-        updateHUD();
-        drawFlight();
-      }
-    }
-
-    window.addEventListener('keydown', e => {
-      if (e.key === 'ArrowUp') moveShip(0, -1);
-      if (e.key === 'ArrowDown') moveShip(0, 1);
-      if (e.key === 'ArrowLeft') moveShip(-1, 0);
-      if (e.key === 'ArrowRight') moveShip(1, 0);
-    });
-
-    initSector();
-    updateHUD();
-    
-    setInterval(() => {
-      drawFlight();
-    }, 50);
-  </script>
-</body>
-</html>
+        osc.frequency.setValue
