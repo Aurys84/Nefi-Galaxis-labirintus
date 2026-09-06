@@ -2,10 +2,10 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Mátrix Űrsikló - Galaktikus Navigáció</title>
+  <title>Mátrix Űrsikló - 3D Galaktikus Navigáció</title>
   <style>
     body {
-      background-color: #020610;
+      background-color: #02040a;
       color: #00ffcc;
       font-family: 'Courier New', Courier, monospace;
       text-align: center;
@@ -18,7 +18,7 @@
       font-size: 1.1rem;
       margin: 4px 0;
       color: #00ffff;
-      text-shadow: 0 0 8px rgba(0,255,255,0.6);
+      text-shadow: 0 0 10px rgba(0,255,255,0.7);
     }
 
     .cockpit-container {
@@ -27,22 +27,22 @@
       justify-content: center;
       align-items: flex-start;
       gap: 15px;
-      max-width: 780px;
+      max-width: 800px;
       margin: 0 auto;
     }
 
     .cockpit-frame {
-      background: radial-gradient(circle, #0f1c2d 0%, #020610 100%);
+      background: radial-gradient(circle, #0c1b2a 0%, #02040a 100%);
       border: 3px solid #00ffcc;
       border-radius: 15px;
-      box-shadow: 0 0 25px rgba(0, 255, 204, 0.4), inset 0 0 30px rgba(0,136,255,0.3);
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.4), inset 0 0 35px rgba(0,136,255,0.3);
       padding: 10px;
     }
 
     .dashboard-panel {
       display: flex;
       justify-content: space-around;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.85);
       border: 1px solid #0088ff;
       border-radius: 6px;
       padding: 6px;
@@ -64,12 +64,12 @@
       border: 3px solid rgba(0, 255, 204, 0.9);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: inset 0 0 25px rgba(0,255,204,0.5);
+      box-shadow: inset 0 0 30px rgba(0,255,204,0.6);
     }
 
     #flightCanvas {
       display: block;
-      background: radial-gradient(circle at center, #110022 0%, #020610 100%);
+      background: radial-gradient(circle at center, #15002b 0%, #02040a 100%);
     }
 
     .controls {
@@ -93,7 +93,7 @@
 
     .control-btn:active {
       background: rgba(0, 255, 204, 0.6);
-      box-shadow: 0 0 10px #00ffcc;
+      box-shadow: 0 0 12px #00ffcc;
     }
 
     .empty-btn { visibility: hidden; }
@@ -111,10 +111,9 @@
       cursor: pointer;
     }
 
-    /* Külső plüss vitrin a szélvédő mellett/alatt */
     .external-vitrine {
       width: 220px;
-      background: rgba(10, 25, 40, 0.9);
+      background: rgba(10, 20, 35, 0.95);
       border: 2px dashed #ff00ff;
       border-radius: 12px;
       padding: 10px;
@@ -138,19 +137,19 @@
     }
 
     .plushie-item {
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.7);
       border: 1px solid #00ffcc;
       border-radius: 8px;
       padding: 6px;
       text-align: center;
       font-size: 1.5rem;
-      box-shadow: 0 0 5px rgba(0,255,204,0.3);
+      box-shadow: 0 0 6px rgba(0,255,204,0.3);
     }
   </style>
 </head>
 <body>
 
-  <h1>MÁTRIX ŰRSIKLÓ — LOGIKAI NAVIGÁCIÓ</h1>
+  <h1>MÁTRIX ŰRSIKLÓ — 3D GALAKTIKUS NAVIGÁCIÓ</h1>
 
   <div class="cockpit-container">
     
@@ -183,7 +182,7 @@
     <div class="external-vitrine">
       <h3>GYŰJTŐI PLÜSSÖK</h3>
       <div id="plushieShelf">
-        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">100 pontonként érkezik új ereklye a polcra!</div>
+        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">100 pontonként érkezik új ereklye!</div>
       </div>
     </div>
 
@@ -218,16 +217,32 @@
 
     function initSector() {
       obstacles = [];
-      // Logikai útvonal-akadályok (mintafelismerési nehézség)
-      let count = 18 + level * 2;
+      goal = { x: Math.floor(Math.random() * (gridWidth - 2)) + 1, y: 1 };
+      
+      // Biztosítunk egy garantált szabad út-vonalat (hogy ne lehessen beszorulni)
+      let cx = ship.x;
+      let cy = ship.y;
+      
+      let safePath = {};
+      safePath[`${cx},${cy}`] = true;
+
+      while (cx !== goal.x || cy !== goal.y) {
+        if (cx < goal.x) cx++;
+        else if (cx > goal.x) cx--;
+        else if (cy > goal.y) cy--;
+        safePath[`${cx},${cy}`] = true;
+      }
+
+      // Véletlenszerű nehezítő akadályok, de a safePath-et soha nem zárjuk el
+      let count = 16 + level * 2;
       for (let i = 0; i < count; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
         let oy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
-        if (!(ox === 5 && oy === 9) && !(ox === 5 && oy === 1)) {
+        let key = `${ox},${oy}`;
+        if (!safePath[key] && !(ox === ship.x && oy === ship.y)) {
           obstacles.push({ x: ox, y: oy });
         }
       }
-      goal = { x: Math.floor(Math.random() * gridWidth), y: 0 };
     }
 
     function updateHUD() {
@@ -255,7 +270,7 @@
       localStorage.setItem('matrix_plushies', JSON.stringify(plushies));
     }
 
-    function drawSpaceship(cx, cy, size, dir) {
+    function drawSpaceship3D(cx, cy, size, dir) {
       ctx.save();
       ctx.translate(cx, cy);
 
@@ -263,34 +278,44 @@
       else if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
       else if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
 
-      // Részletesebb pixel-stílusú űrsikló test
-      ctx.fillStyle = '#00ffff';
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = '#00ffff';
-
-      // Fő törzs
+      // 3D hatású árnyék a hajó alatt
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
       ctx.beginPath();
-      ctx.moveTo(0, -size);
-      ctx.lineTo(-size * 0.7, size * 0.8);
-      ctx.lineTo(-size * 0.3, size * 0.5);
-      ctx.lineTo(0, size * 0.8);
-      ctx.lineTo(size * 0.3, size * 0.5);
-      ctx.lineTo(size * 0.7, size * 0.8);
-      ctx.closePath();
+      ctx.ellipse(0, size * 0.4, size * 0.8, size * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Kabin ablak (arany/narancs fény)
+      // Részletes űrsikló test (Metál kék / cián 3D shadeléssel)
+      let grad = ctx.createLinearGradient(-size, -size, size, size);
+      grad.addColorStop(0, '#00ffff');
+      grad.addColorStop(0.5, '#0088ff');
+      grad.addColorStop(1, '#002244');
+      ctx.fillStyle = grad;
+
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 1.2);
+      ctx.lineTo(-size * 0.8, size * 0.9);
+      ctx.lineTo(-size * 0.3, size * 0.6);
+      ctx.lineTo(0, size * 0.9);
+      ctx.lineTo(size * 0.3, size * 0.6);
+      ctx.lineTo(size * 0.8, size * 0.9);
+      ctx.closePath();
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#00ffff';
+      ctx.fill();
+
+      // 3D Kabin üveg (Narancs-arany ragyogás)
       ctx.fillStyle = '#ffaa00';
       ctx.beginPath();
-      ctx.arc(0, -size * 0.2, size * 0.25, 0, Math.PI * 2);
+      ctx.arc(0, -size * 0.2, size * 0.28, 0, Math.PI * 2);
       ctx.fill();
 
-      // Hajtómű láng
-      ctx.fillStyle = '#ff0055';
+      // Ion hajtómű pulzáló láng
+      ctx.fillStyle = '#ff0066';
+      ctx.shadowColor = '#ff0066';
       ctx.beginPath();
-      ctx.moveTo(-size * 0.3, size * 0.8);
-      ctx.lineTo(0, size * 1.3);
-      ctx.lineTo(size * 0.3, size * 0.8);
+      ctx.moveTo(-size * 0.3, size * 0.9);
+      ctx.lineTo(0, size * 1.5);
+      ctx.lineTo(size * 0.3, size * 0.9);
       ctx.closePath();
       ctx.fill();
 
@@ -301,7 +326,22 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let tileSize = canvas.width / gridWidth;
 
-      // Háttér csillagmező
+      // 3D Holografikus talaj-rács vonalak
+      ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= gridWidth; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * tileSize, 0);
+        ctx.lineTo(i * tileSize, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * tileSize);
+        ctx.lineTo(canvas.width, i * tileSize);
+        ctx.stroke();
+      }
+
+      // Háttér csillagok
       ctx.fillStyle = '#ffffff';
       for (let i = 0; i < 35; i++) {
         let sx = (i * 31 + steps * 3) % canvas.width;
@@ -309,26 +349,44 @@
         ctx.fillRect(sx, sy, 1.5, 1.5);
       }
 
-      // Galaktikus Kapu (Cél)
+      // Galaktikus Kapu (3D pulzáló cél)
+      let gateX = (goal.x + 0.5) * tileSize;
+      let gateY = (goal.y + 0.5) * tileSize;
       ctx.fillStyle = '#ff00ff';
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 25;
       ctx.shadowColor = '#ff00ff';
-      ctx.fillRect(goal.x * tileSize + 3, goal.y * tileSize + 3, tileSize - 6, tileSize - 6);
+      ctx.beginPath();
+      ctx.arc(gateX, gateY, tileSize / 2.2, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Aszteroidák / Rács akadályok
-      ctx.fillStyle = '#0088ff';
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = '#0088ff';
+      // Belső mag
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(gateX, gateY, tileSize / 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3D Aszteroidák / Akadályok (gömb alakú fényes csomók)
       obstacles.forEach(obs => {
+        let ox = (obs.x + 0.5) * tileSize;
+        let oy = (obs.y + 0.5) * tileSize;
+
+        let oGrad = ctx.createRadialGradient(ox - 3, oy - 3, 2, ox, oy, tileSize / 2.5);
+        oGrad.addColorStop(0, '#00ffff');
+        oGrad.addColorStop(0.5, '#0055ff');
+        oGrad.addColorStop(1, '#001133');
+
+        ctx.fillStyle = oGrad;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#0088ff';
         ctx.beginPath();
-        ctx.arc((obs.x + 0.5) * tileSize, (obs.y + 0.5) * tileSize, tileSize / 3, 0, Math.PI * 2);
+        ctx.arc(ox, oy, tileSize / 2.6, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // Részletes Űrsikló rajzolása
+      // Űrsikló kirajzolása
       let cx = (ship.x + 0.5) * tileSize;
       let cy = (ship.y + 0.5) * tileSize;
-      drawSpaceship(cx, cy, tileSize / 2.2, ship.dir);
+      drawSpaceship3D(cx, cy, tileSize / 2.2, ship.dir);
       ctx.shadowBlur = 0;
     }
 
@@ -345,7 +403,7 @@
         let hit = obstacles.some(o => o.x === nx && o.y === ny);
         if (hit) {
           score = Math.max(0, score - 5);
-          alert("Ütközés az aszteroida mezővel! Vissza a bázisra.");
+          alert("Ütközés az aszteroidával! Vissza a bázisra.");
           ship.x = 5; ship.y = 9; ship.dir = 'UP';
         } else {
           ship.x = nx;
@@ -353,10 +411,10 @@
           steps++;
 
           if (ship.x === goal.x && ship.y === goal.y) {
-            score += 45;
+            score += 50;
             level++;
             checkPlushieReward();
-            alert("Kiváló navigáció! Új galaktikus szektor elérve!");
+            alert("Kiváló 3D navigáció! Új galaktikus szektor elérve!");
             ship.x = 5; ship.y = 9; ship.dir = 'UP';
             initSector();
           }
