@@ -215,38 +215,67 @@
     let obstacles = [];
     let crystals = [];
     let goal = { x: 5, y: 1 };
-    let gateOpen = false;
-
-    // Vizuális animációs számlálók
     let animPulse = 0;
 
     function initSector() {
       obstacles = [];
       crystals = [];
-      gateOpen = false;
       goal = { x: Math.floor(Math.random() * (gridWidth - 2)) + 1, y: 1 };
 
-      // 3 db energiakristály elhelyezése a pályán
-      let crystalCount = 3;
-      while (crystals.length < crystalCount) {
-        let cx = Math.floor(Math.random() * gridWidth);
-        let cy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
-        if (!(cx === ship.x && cy === ship.y) && !(cx === goal.x && cy === goal.y)) {
-          if (!crystals.some(c => c.x === cx && c.y === cy)) {
-            crystals.push({ x: cx, y: cy, collected: false });
-          }
+      // Garanciás útvonal térkép, hogy minden elérhető legyen
+      let safePath = {};
+      
+      // 1. Kristályok elhelyezése és biztonságos út építése hozzájuk
+      let tempX = ship.x;
+      let tempY = ship.y;
+
+      let cPositions = [
+        { x: 2, y: 6 },
+        { x: 8, y: 6 },
+        { x: 5, y: 4 }
+      ];
+
+      // Kicsit randomizáljuk a kristályok helyét, de ésszerűen
+      cPositions.forEach((pos, idx) => {
+        let cx = Math.max(1, Math.min(gridWidth - 2, pos.x + (Math.floor(Math.random() * 3) - 1)));
+        let cy = Math.max(2, Math.min(gridHeight - 3, pos.y + (Math.floor(Math.random() * 3) - 1)));
+        crystals.push({ x: cx, y: cy, collected: false });
+      });
+
+      // Út rajzolása a hajótól a kristályokon át a kapuhoz
+      let currentLoc = { x: ship.x, y: ship.y };
+      crystals.forEach(c => {
+        while (currentLoc.x !== c.x || currentLoc.y !== c.y) {
+          if (currentLoc.x < c.x) currentLoc.x++;
+          else if (currentLoc.x > c.x) currentLoc.x--;
+          else if (currentLoc.y < c.y) currentLoc.y++;
+          else if (currentLoc.y > c.y) currentLoc.y--;
+          safePath[`${currentLoc.x},${currentLoc.y}`] = true;
         }
+      });
+
+      // Utolsó kristálytól a kapuhoz
+      while (currentLoc.x !== goal.x || currentLoc.y !== goal.y) {
+        if (currentLoc.x < goal.x) currentLoc.x++;
+        else if (currentLoc.x > goal.x) currentLoc.x--;
+        else if (currentLoc.y < goal.y) currentLoc.y++;
+        else if (currentLoc.y > goal.y) currentLoc.y--;
+        safePath[`${currentLoc.x},${currentLoc.y}`] = true;
       }
 
-      // Akadályok
-      let count = 14 + level * 2;
+      // Kezdő és cél cellák biztosítása
+      safePath[`${ship.x},${ship.y}`] = true;
+      safePath[`${goal.x},${goal.y}`] = true;
+      crystals.forEach(c => safePath[`${c.x},${c.y}`] = true);
+
+      // Véletlen akadályok, de a safePath-et soha nem zárjuk el!
+      let count = 12 + level;
       for (let i = 0; i < count; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
         let oy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
-        if (!(ox === ship.x && oy === ship.y) && !(ox === goal.x && oy === goal.y)) {
-          if (!crystals.some(c => c.x === ox && c.y === oy)) {
-            obstacles.push({ x: ox, y: oy });
-          }
+        let key = `${ox},${oy}`;
+        if (!safePath[key]) {
+          obstacles.push({ x: ox, y: oy });
         }
       }
     }
@@ -330,7 +359,6 @@
       let tileSize = canvas.width / gridWidth;
       animPulse += 0.08;
 
-      // Háttér rács
       ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
       ctx.lineWidth = 1;
       for (let i = 0; i <= gridWidth; i++) {
@@ -345,7 +373,6 @@
         ctx.stroke();
       }
 
-      // Csillagok
       ctx.fillStyle = '#ffffff';
       for (let i = 0; i < 35; i++) {
         let sx = (i * 31 + steps * 3) % canvas.width;
@@ -353,7 +380,6 @@
         ctx.fillRect(sx, sy, 1.5, 1.5);
       }
 
-      // Galaktikus Kapu (Zárva piros, Nyitva pulzáló zöld/lila animáció)
       let gateX = (goal.x + 0.5) * tileSize;
       let gateY = (goal.y + 0.5) * tileSize;
       let allCollected = crystals.every(c => c.collected);
@@ -371,7 +397,6 @@
       ctx.arc(gateX, gateY, tileSize / 6, 0, Math.PI * 2);
       ctx.fill();
 
-      // Lebegő energiakristályok animációval
       crystals.forEach(c => {
         if (!c.collected) {
           let cx = (c.x + 0.5) * tileSize;
@@ -391,7 +416,6 @@
         }
       });
 
-      // Akadályok
       obstacles.forEach(obs => {
         let ox = (obs.x + 0.5) * tileSize;
         let oy = (obs.y + 0.5) * tileSize;
@@ -409,7 +433,6 @@
         ctx.fill();
       });
 
-      // Űrsikló
       let cx = (ship.x + 0.5) * tileSize;
       let cy = (ship.y + 0.5) * tileSize;
       drawSpaceship3D(cx, cy, tileSize / 2.2, ship.dir);
@@ -431,22 +454,19 @@
           score = Math.max(0, score - 5);
           alert("Ütközés az aszteroidával! Vissza a bázisra.");
           ship.x = 5; ship.y = 9; ship.dir = 'UP';
-          initSector(); // Újraindítja a szektort
+          initSector();
         } else {
           ship.x = nx;
           ship.y = ny;
           steps++;
 
-          // Kristály felvétele animációs logikával
           crystals.forEach(c => {
             if (!c.collected && c.x === ship.x && c.y === ship.y) {
               c.collected = true;
               score += 15;
-              // Kis vizuális visszajelzés
             }
           });
 
-          // Kapu elérése
           if (ship.x === goal.x && ship.y === goal.y) {
             let allCollected = crystals.every(c => c.collected);
             if (allCollected) {
@@ -494,7 +514,6 @@
     initSector();
     updateHUD();
     
-    // Folyamatos render loop a pulzáló animációkhoz
     setInterval(() => {
       drawFlight();
     }, 50);
