@@ -55,7 +55,6 @@
       font-weight: bold;
     }
 
-    /* Dupla széles panoráma szélvédő (1080x540) */
     .windshield {
       position: relative;
       width: 1080px;
@@ -179,10 +178,11 @@
       </div>
     </div>
 
+    <!-- Külső plüss raktár / vitrin -->
     <div class="external-vitrine">
       <h3>GYŰJTŐI PLÜSSÖK</h3>
       <div id="plushieShelf">
-        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">100 pontonként érkezik új ereklye!</div>
+        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">1000 pontonként érkezik új ereklye!</div>
       </div>
     </div>
 
@@ -221,7 +221,6 @@
       '#ff00ff', '#00ffff', '#ffff00', '#ff3300', '#66ff33', '#9933ff', '#ff66b2', '#00ff99'
     ];
 
-    // Erősebb, határozottabb Web Audio API hangmotor (magasabb hangerő + torzítottabb retró szinti)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function playSound(type) {
@@ -236,14 +235,13 @@
       gainNode.connect(audioCtx.destination);
 
       if (type === 'move') {
-        osc.type = 'square'; // Határozottabb hullámforma
+        osc.type = 'square';
         osc.frequency.setValueAtTime(220, now);
-        gainNode.gain.setValueAtTime(0.15, now); // Magasabb hangerő
+        gainNode.gain.setValueAtTime(0.15, now);
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.start(now);
         osc.stop(now + 0.08);
       } else if (type === 'crystal') {
-        // Hangos, csilingelő arpeggio akkord
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(523.25, now);
         osc.frequency.setValueAtTime(659.25, now + 0.08);
@@ -254,7 +252,6 @@
         osc.start(now);
         osc.stop(now + 0.45);
       } else if (type === 'hit') {
-        // Erős robbanás / ütközés hang
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(100, now);
         osc.frequency.linearRampToValueAtTime(30, now + 0.3);
@@ -263,7 +260,6 @@
         osc.start(now);
         osc.stop(now + 0.3);
       } else if (type === 'gate') {
-        // Diadalmas kapunyitási dallam
         osc.type = 'sine';
         osc.frequency.setValueAtTime(440, now);
         osc.frequency.setValueAtTime(554.37, now + 0.12);
@@ -276,7 +272,6 @@
       }
     }
 
-    // Panoráma rácsméret (szélesebb oszlopszám)
     let gridWidth = 20;
     let gridHeight = 10;
 
@@ -293,7 +288,6 @@
 
       let safePath = {};
       
-      // 7 db kristály elhelyezése a széles téren
       let cPositions = [
         { x: 4, y: 6 }, { x: 15, y: 6 },
         { x: 3, y: 4 }, { x: 17, y: 4 },
@@ -331,8 +325,9 @@
       safePath[`${goal.x},${goal.y}`] = true;
       crystals.forEach(c => safePath[`${c.x},${c.y}`] = true);
 
-      let count = 25 + (level * 4);
-      if (count > 60) count = 60;
+      // Sokkal sűrűbb aszteroidamező (magasabb alap + szintekénti növekedés)
+      let count = 35 + (level * 5);
+      if (count > 75) count = 75;
 
       for (let i = 0; i < count; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
@@ -352,7 +347,7 @@
 
       let shelf = document.getElementById('plushieShelf');
       if (plushies.length === 0) {
-        shelf.innerHTML = '<div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">100 pontonként érkezik új ereklye!</div>';
+        shelf.innerHTML = '<div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">1000 pontonként érkezik új ereklye!</div>';
       } else {
         shelf.innerHTML = '';
         plushies.forEach(pIdx => {
@@ -559,7 +554,8 @@
     }
 
     function checkPlushieReward() {
-      let expectedCount = Math.floor(score / 100);
+      // 1000 pontonként ad új plüss ereklyét
+      let expectedCount = Math.floor(score / 1000);
       while (plushies.length < expectedCount && plushies.length < plushieData.length) {
         plushies.push(plushies.length);
       }
