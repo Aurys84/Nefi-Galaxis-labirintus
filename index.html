@@ -11,7 +11,7 @@
       text-align: center;
       margin: 0;
       padding: 5px;
-      overflow: hidden;
+      overflow-x: hidden;
     }
 
     h1 {
@@ -21,15 +21,22 @@
       text-shadow: 0 0 8px rgba(0,255,255,0.6);
     }
 
-    .cockpit-frame {
-      max-width: 680px;
+    .cockpit-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 15px;
+      max-width: 780px;
       margin: 0 auto;
+    }
+
+    .cockpit-frame {
       background: radial-gradient(circle, #0f1c2d 0%, #020610 100%);
       border: 3px solid #00ffcc;
       border-radius: 15px;
       box-shadow: 0 0 25px rgba(0, 255, 204, 0.4), inset 0 0 30px rgba(0,136,255,0.3);
       padding: 10px;
-      position: relative;
     }
 
     .dashboard-panel {
@@ -50,8 +57,8 @@
 
     .windshield {
       position: relative;
-      width: 480px;
-      height: 480px;
+      width: 440px;
+      height: 440px;
       margin: 0 auto;
       background: #000;
       border: 3px solid rgba(0, 255, 204, 0.9);
@@ -67,7 +74,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(3, 60px);
+      grid-template-columns: repeat(3, 55px);
       gap: 6px;
       justify-content: center;
       margin-top: 8px;
@@ -78,7 +85,7 @@
       border: 1px solid #00ffcc;
       color: #00ffcc;
       font-size: 1.1rem;
-      padding: 10px;
+      padding: 8px;
       border-radius: 6px;
       cursor: pointer;
       user-select: none;
@@ -104,63 +111,82 @@
       cursor: pointer;
     }
 
-    .vitrine {
-      margin-top: 8px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px dashed #ff00ff;
-      border-radius: 6px;
-      padding: 5px;
+    /* Külső plüss vitrin a szélvédő mellett/alatt */
+    .external-vitrine {
+      width: 220px;
+      background: rgba(10, 25, 40, 0.9);
+      border: 2px dashed #ff00ff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 0 15px rgba(255,0,255,0.2);
+      text-align: left;
     }
 
-    .vitrine h3 {
-      font-size: 0.8rem;
-      margin: 0 0 3px 0;
+    .external-vitrine h3 {
+      font-size: 0.85rem;
+      margin: 0 0 8px 0;
       color: #ff00ff;
+      text-align: center;
     }
 
     #plushieShelf {
-      display: flex;
-      justify-content: center;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      min-height: 25px;
-      align-items: center;
-      font-size: 1.2rem;
+      min-height: 120px;
+      align-content: start;
+    }
+
+    .plushie-item {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid #00ffcc;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      font-size: 1.5rem;
+      box-shadow: 0 0 5px rgba(0,255,204,0.3);
     }
   </style>
 </head>
 <body>
 
-  <div class="cockpit-frame">
-    <h1>MÁTRIX ŰRSIKLÓ — GALAKTIKUS NAVIGÁCIÓ</h1>
+  <h1>MÁTRIX ŰRSIKLÓ — LOGIKAI NAVIGÁCIÓ</h1>
+
+  <div class="cockpit-container">
     
-    <div class="dashboard-panel">
-      <div>Pont: <span id="scoreVal">0</span></div>
-      <div>Lépések: <span id="stepsVal">0</span></div>
-      <div>Galaxis: <span id="levelVal">1</span></div>
+    <div class="cockpit-frame">
+      <div class="dashboard-panel">
+        <div>Pont: <span id="scoreVal">0</span></div>
+        <div>Lépések: <span id="stepsVal">0</span></div>
+        <div>Galaxis: <span id="levelVal">1</span></div>
+      </div>
+
+      <div class="windshield">
+        <canvas id="flightCanvas" width="440" height="440"></canvas>
+      </div>
+
+      <div class="controls">
+        <div class="empty-btn"></div>
+        <button class="control-btn" onclick="moveShip(0, -1)">▲</button>
+        <div class="empty-btn"></div>
+        <button class="control-btn" onclick="moveShip(-1, 0)">◀</button>
+        <button class="control-btn" onclick="moveShip(0, 1)">▼</button>
+        <button class="control-btn" onclick="moveShip(1, 0)">▶</button>
+      </div>
+
+      <div class="action-buttons">
+        <button class="btn" onclick="resetGameData()">Játék Törlése</button>
+      </div>
     </div>
 
-    <div class="windshield">
-      <!-- 2x nagyobb felbontású szélvédő vászon (480x480) -->
-      <canvas id="flightCanvas" width="480" height="480"></canvas>
+    <!-- Külső plüss raktár / vitrin -->
+    <div class="external-vitrine">
+      <h3>GYŰJTŐI PLÜSSÖK</h3>
+      <div id="plushieShelf">
+        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">100 pontonként érkezik új ereklye a polcra!</div>
+      </div>
     </div>
 
-    <div class="controls">
-      <div class="empty-btn"></div>
-      <button class="control-btn" onclick="moveShip(0, -1)">▲ Gáz</button>
-      <div class="empty-btn"></div>
-      <button class="control-btn" onclick="moveShip(-1, 0)">◄ Balra</button>
-      <button class="control-btn" onclick="moveShip(0, 1)">▼ Vissza</button>
-      <button class="control-btn" onclick="moveShip(1, 0)">► Jobbra</button>
-    </div>
-
-    <div class="vitrine">
-      <h3>PLÜSS VITRIN (100 pontonként kapod)</h3>
-      <div id="plushieShelf">Még üres a polc</div>
-    </div>
-
-    <div class="action-buttons">
-      <button class="btn" onclick="resetGameData()">Játék Törlése</button>
-    </div>
   </div>
 
   <script>
@@ -172,24 +198,32 @@
     let level = parseInt(localStorage.getItem('matrix_level')) || 1;
     let plushies = JSON.parse(localStorage.getItem('matrix_plushies')) || [];
 
-    const plushieIcons = ['🧸', '🤖', '🐱', '🦄', '🚀', '⭐', '💎', '👑', '🛸', '🪐'];
+    const plushieData = [
+      { icon: '🧸', name: 'Mátrix Maci' },
+      { icon: '🤖', name: 'Cyber Droid' },
+      { icon: '🐱', name: 'Asztro Cica' },
+      { icon: '🦄', name: 'Galaxis Unikornis' },
+      { icon: '🚀', name: 'Mini Űrsikló' },
+      { icon: '⭐', name: 'Szuper Nova' },
+      { icon: '💎', name: 'Kvarc Kristály' },
+      { icon: '👑', name: 'Labor Korona' }
+    ];
 
-    // 12x12-es nagyobb rács a tágasabb szélvédőhöz
-    let gridWidth = 12;
-    let gridHeight = 12;
+    let gridWidth = 11;
+    let gridHeight = 11;
 
-    let ship = { x: 6, y: 10, dir: 'UP' }; // Kezdő pozíció és nézési irány ('UP', 'DOWN', 'LEFT', 'RIGHT')
+    let ship = { x: 5, y: 9, dir: 'UP' };
     let obstacles = [];
-    let goal = { x: 6, y: 0 };
+    let goal = { x: 5, y: 1 };
 
     function initSector() {
       obstacles = [];
-      // Több akadály a nehezebb, izgalmasabb kihívásért
-      let obstacleCount = 15 + level * 3;
-      for (let i = 0; i < obstacleCount; i++) {
+      // Logikai útvonal-akadályok (mintafelismerési nehézség)
+      let count = 18 + level * 2;
+      for (let i = 0; i < count; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
         let oy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
-        if (!(ox === 6 && oy === 10)) {
+        if (!(ox === 5 && oy === 9) && !(ox === 5 && oy === 1)) {
           obstacles.push({ x: ox, y: oy });
         }
       }
@@ -203,9 +237,16 @@
 
       let shelf = document.getElementById('plushieShelf');
       if (plushies.length === 0) {
-        shelf.innerHTML = "Még üres a polc";
+        shelf.innerHTML = '<div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">100 pontonként érkezik új ereklye!</div>';
       } else {
-        shelf.innerHTML = plushies.join(' ');
+        shelf.innerHTML = '';
+        plushies.forEach(pIdx => {
+          let p = plushieData[pIdx];
+          let div = document.createElement('div');
+          div.className = 'plushie-item';
+          div.innerHTML = `${p.icon}<br><span style="font-size:0.55rem; color:#00ffcc;">${p.name}</span>`;
+          shelf.appendChild(div);
+        });
       }
 
       localStorage.setItem('matrix_score', score);
@@ -214,66 +255,84 @@
       localStorage.setItem('matrix_plushies', JSON.stringify(plushies));
     }
 
-    function drawFlight() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let tileSize = canvas.width / gridWidth;
-
-      // Háttér csillagok
-      ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < 30; i++) {
-        let sx = (i * 41 + steps * 4) % canvas.width;
-        let sy = (i * 59 + steps * 8) % canvas.height;
-        ctx.fillRect(sx, sy, 1.8, 1.8);
-      }
-
-      // Galaktikus Kapu (Cél)
-      ctx.fillStyle = '#ff00ff';
-      ctx.shadowBlur = 18;
-      ctx.shadowColor = '#ff00ff';
-      ctx.fillRect(goal.x * tileSize + 4, goal.y * tileSize + 4, tileSize - 8, tileSize - 8);
-
-      // Aszteroidák / Akadályok
-      ctx.fillStyle = '#0088ff';
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#0088ff';
-      obstacles.forEach(obs => {
-        ctx.beginPath();
-        ctx.arc((obs.x + 0.5) * tileSize, (obs.y + 0.5) * tileSize, tileSize / 2.8, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Űrsikló kirajzolása a pontos irányba fordulva
-      ctx.fillStyle = '#00ffff';
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#00ffff';
-      
-      let cx = (ship.x + 0.5) * tileSize;
-      let cy = (ship.y + 0.5) * tileSize;
-      let size = tileSize / 2.2;
-
+    function drawSpaceship(cx, cy, size, dir) {
       ctx.save();
       ctx.translate(cx, cy);
 
-      // Elforgatás az irány alapján
-      if (ship.dir === 'DOWN') ctx.rotate(Math.PI);
-      else if (ship.dir === 'LEFT') ctx.rotate(-Math.PI / 2);
-      else if (ship.dir === 'RIGHT') ctx.rotate(Math.PI / 2);
-      // 'UP' esetén nincs forgatás (0 fok)
+      if (dir === 'DOWN') ctx.rotate(Math.PI);
+      else if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
+      else if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
 
+      // Részletesebb pixel-stílusú űrsikló test
+      ctx.fillStyle = '#00ffff';
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#00ffff';
+
+      // Fő törzs
       ctx.beginPath();
-      ctx.moveTo(0, -size);       // Orr
-      ctx.lineTo(-size, size);    // Bal sarok
-      ctx.lineTo(0, size * 0.6);  // Farok bemélyedés
-      ctx.lineTo(size, size);     // Jobb sarok
+      ctx.moveTo(0, -size);
+      ctx.lineTo(-size * 0.7, size * 0.8);
+      ctx.lineTo(-size * 0.3, size * 0.5);
+      ctx.lineTo(0, size * 0.8);
+      ctx.lineTo(size * 0.3, size * 0.5);
+      ctx.lineTo(size * 0.7, size * 0.8);
+      ctx.closePath();
+      ctx.fill();
+
+      // Kabin ablak (arany/narancs fény)
+      ctx.fillStyle = '#ffaa00';
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.2, size * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hajtómű láng
+      ctx.fillStyle = '#ff0055';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.3, size * 0.8);
+      ctx.lineTo(0, size * 1.3);
+      ctx.lineTo(size * 0.3, size * 0.8);
       ctx.closePath();
       ctx.fill();
 
       ctx.restore();
+    }
+
+    function drawFlight() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let tileSize = canvas.width / gridWidth;
+
+      // Háttér csillagmező
+      ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 35; i++) {
+        let sx = (i * 31 + steps * 3) % canvas.width;
+        let sy = (i * 47 + steps * 6) % canvas.height;
+        ctx.fillRect(sx, sy, 1.5, 1.5);
+      }
+
+      // Galaktikus Kapu (Cél)
+      ctx.fillStyle = '#ff00ff';
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#ff00ff';
+      ctx.fillRect(goal.x * tileSize + 3, goal.y * tileSize + 3, tileSize - 6, tileSize - 6);
+
+      // Aszteroidák / Rács akadályok
+      ctx.fillStyle = '#0088ff';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#0088ff';
+      obstacles.forEach(obs => {
+        ctx.beginPath();
+        ctx.arc((obs.x + 0.5) * tileSize, (obs.y + 0.5) * tileSize, tileSize / 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Részletes Űrsikló rajzolása
+      let cx = (ship.x + 0.5) * tileSize;
+      let cy = (ship.y + 0.5) * tileSize;
+      drawSpaceship(cx, cy, tileSize / 2.2, ship.dir);
       ctx.shadowBlur = 0;
     }
 
     function moveShip(dx, dy) {
-      // Irány beállítása a mozgásnak megfelelően
       if (dx === 0 && dy === -1) ship.dir = 'UP';
       else if (dx === 0 && dy === 1) ship.dir = 'DOWN';
       else if (dx === -1 && dy === 0) ship.dir = 'LEFT';
@@ -286,19 +345,19 @@
         let hit = obstacles.some(o => o.x === nx && o.y === ny);
         if (hit) {
           score = Math.max(0, score - 5);
-          alert("Ütközés az aszteroidával! Vissza a bázisra!");
-          ship.x = 6; ship.y = 10; ship.dir = 'UP';
+          alert("Ütközés az aszteroida mezővel! Vissza a bázisra.");
+          ship.x = 5; ship.y = 9; ship.dir = 'UP';
         } else {
           ship.x = nx;
           ship.y = ny;
           steps++;
 
           if (ship.x === goal.x && ship.y === goal.y) {
-            score += 40;
+            score += 45;
             level++;
             checkPlushieReward();
-            alert("Gratulálok! Sikeresen átléptél a következő galaktikus szektorba!");
-            ship.x = 6; ship.y = 10; ship.dir = 'UP';
+            alert("Kiváló navigáció! Új galaktikus szektor elérve!");
+            ship.x = 5; ship.y = 9; ship.dir = 'UP';
             initSector();
           }
         }
@@ -308,9 +367,9 @@
     }
 
     function checkPlushieReward() {
-      let expectedPlushies = Math.floor(score / 100);
-      while (plushies.length < expectedPlushies && plushies.length < plushieIcons.length) {
-        plushies.push(plushieIcons[plushies.length]);
+      let expectedCount = Math.floor(score / 100);
+      while (plushies.length < expectedCount && plushies.length < plushieData.length) {
+        plushies.push(plushies.length);
       }
     }
 
@@ -318,7 +377,7 @@
       if (confirm("Biztosan nullázod a repülési naplót?")) {
         localStorage.clear();
         score = 0; steps = 0; level = 1; plushies = [];
-        ship = { x: 6, y: 10, dir: 'UP' };
+        ship = { x: 5, y: 9, dir: 'UP' };
         initSector();
         updateHUD();
         drawFlight();
