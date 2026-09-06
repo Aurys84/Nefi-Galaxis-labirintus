@@ -2,4 +2,4 @@
 
 
 # Nefi Űrsikló
-Logikai kalandjáték, kicsiknek és nagyoknak
+Logikai kalandjáték, kicsiknek
