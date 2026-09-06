@@ -12,6 +12,7 @@
       margin: 0;
       padding: 5px;
       overflow-x: hidden;
+      overflow-y: hidden;
     }
 
     h1 {
@@ -72,6 +73,47 @@
       background: radial-gradient(circle at center, #15002b 0%, #02040a 100%);
     }
 
+    #endGameOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1080px; height: 540px;
+      background: radial-gradient(circle, rgba(0,255,255,0.25) 0%, rgba(2,4,10,0.92) 70%);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    #endGameText {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff, 0 0 60px #00ffcc;
+      animation: pulseGlow 1.5s infinite alternate;
+      margin-bottom: 20px;
+      line-height: 1.1;
+      padding: 20px;
+    }
+
+    #endGameSub {
+      font-size: 1.5rem;
+      color: #00ffcc;
+      animation: textPulse 1s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff, 0 0 30px #00ffcc; }
+      to { text-shadow: 0 0 30px #00ffff, 0 0 60px #ff00ff, 0 0 90px #00ffcc; }
+    }
+
+    @keyframes textPulse {
+      from { opacity: 0.6; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
     .controls {
       display: grid;
       grid-template-columns: repeat(3, 65px);
@@ -130,19 +172,19 @@
 
     #plushieShelf {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      min-height: 120px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      min-height: 150px;
       align-content: start;
     }
 
     .plushie-item {
       background: rgba(0, 0, 0, 0.7);
       border: 1px solid #00ffcc;
-      border-radius: 8px;
-      padding: 6px;
+      border-radius: 6px;
+      padding: 4px;
       text-align: center;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       box-shadow: 0 0 6px rgba(0,255,204,0.3);
     }
   </style>
@@ -162,6 +204,10 @@
 
       <div class="windshield">
         <canvas id="flightCanvas" width="1080" height="540"></canvas>
+        <div id="endGameOverlay">
+          <div id="endGameText">KÜLDETÉS<br>TELJESÍTVE!</div>
+          <div id="endGameSub">A GALAXIS MEGMENKÜLT!<br>Minden ereklyét begyűjtöttél.</div>
+        </div>
       </div>
 
       <div class="controls">
@@ -178,11 +224,10 @@
       </div>
     </div>
 
-    <!-- Külső plüss raktár / vitrin -->
     <div class="external-vitrine">
-      <h3>GYŰJTŐI PLÜSSÖK</h3>
+      <h3>GYŰJTŐI EREKLYÉK</h3>
       <div id="plushieShelf">
-        <div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">1000 pontonként érkezik új ereklye!</div>
+        <div style="grid-column: span 4; color: #888; font-size: 0.75rem; text-align: center; margin-top: 30px;">1000 pontonként érkezik új ereklye!</div>
       </div>
     </div>
 
@@ -196,6 +241,7 @@
     let steps = parseInt(localStorage.getItem('matrix_steps')) || 0;
     let level = parseInt(localStorage.getItem('matrix_level')) || 1;
     let plushies = JSON.parse(localStorage.getItem('matrix_plushies')) || [];
+    let isGameOver = false;
 
     const plushieData = [
       { icon: '🧸', name: 'Mátrix Maci' },
@@ -205,7 +251,19 @@
       { icon: '🚀', name: 'Mini Űrsikló' },
       { icon: '⭐', name: 'Szuper Nova' },
       { icon: '💎', name: 'Kvarc Kristály' },
-      { icon: '👑', name: 'Labor Korona' }
+      { icon: '👑', name: 'Labor Korona' },
+      { icon: '🪐', name: 'Gyűrűs Bolygó' },
+      { icon: '🛸', name: 'UFO Barát' },
+      { icon: '👾', name: 'Pixeles Űrlény' },
+      { icon: '☄️', name: 'Üstökös Kő' },
+      { icon: '🛰️', name: 'Műhold Vevő' },
+      { icon: '⚛️', name: 'Atom Modul' },
+      { icon: '🌀', name: 'Fekete Lyuk' },
+      { icon: '🐌', name: 'Űrcsiga' },
+      { icon: '🐢', name: 'Galaktikus Teknős' },
+      { icon: '🐙', name: 'Világító Polip' },
+      { icon: '🕶️', name: 'Napszemüveg' },
+      { icon: '🏆', name: 'Bajnok Kupa' }
     ];
 
     const themes = [
@@ -325,7 +383,6 @@
       safePath[`${goal.x},${goal.y}`] = true;
       crystals.forEach(c => safePath[`${c.x},${c.y}`] = true);
 
-      // Sokkal sűrűbb aszteroidamező (magasabb alap + szintekénti növekedés)
       let count = 35 + (level * 5);
       if (count > 75) count = 75;
 
@@ -347,16 +404,21 @@
 
       let shelf = document.getElementById('plushieShelf');
       if (plushies.length === 0) {
-        shelf.innerHTML = '<div style="grid-column: span 2; color: #888; font-size: 0.75rem; text-align: center; margin-top: 20px;">1000 pontonként érkezik új ereklye!</div>';
+        shelf.innerHTML = '<div style="grid-column: span 4; color: #888; font-size: 0.75rem; text-align: center; margin-top: 30px;">1000 pontonként érkezik új ereklye!</div>';
       } else {
         shelf.innerHTML = '';
         plushies.forEach(pIdx => {
           let p = plushieData[pIdx];
           let div = document.createElement('div');
           div.className = 'plushie-item';
-          div.innerHTML = `${p.icon}<br><span style="font-size:0.55rem; color:#00ffcc;">${p.name}</span>`;
+          div.innerHTML = `${p.icon}<br><span style="font-size:0.45rem; color:#00ffcc;">${p.name}</span>`;
           shelf.appendChild(div);
         });
+      }
+
+      if (plushies.length >= plushieData.length) {
+        isGameOver = true;
+        document.getElementById('endGameOverlay').style.display = 'flex';
       }
 
       localStorage.setItem('matrix_score', score);
@@ -503,6 +565,8 @@
     }
 
     function moveShip(dx, dy) {
+      if (isGameOver) return;
+
       if (dx === 0 && dy === -1) ship.dir = 'UP';
       else if (dx === 0 && dy === 1) ship.dir = 'DOWN';
       else if (dx === -1 && dy === 0) ship.dir = 'LEFT';
@@ -554,7 +618,6 @@
     }
 
     function checkPlushieReward() {
-      // 1000 pontonként ad új plüss ereklyét
       let expectedCount = Math.floor(score / 1000);
       while (plushies.length < expectedCount && plushies.length < plushieData.length) {
         plushies.push(plushies.length);
@@ -565,6 +628,8 @@
       if (confirm("Biztosan nullázod a repülési naplót?")) {
         localStorage.clear();
         score = 0; steps = 0; level = 1; plushies = [];
+        isGameOver = false;
+        document.getElementById('endGameOverlay').style.display = 'none';
         ship = { x: 10, y: 8, dir: 'UP' };
         initSector();
         updateHUD();
