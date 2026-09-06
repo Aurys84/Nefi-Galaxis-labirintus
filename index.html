@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Mátrix Űrsikló - Galaktikus Küldetés</title>
+  <title>Mátrix Űrsikló - Panoráma Galaktikus Küldetés</title>
   <style>
     body {
       background-color: #02040a;
@@ -27,7 +27,7 @@
       justify-content: center;
       align-items: flex-start;
       gap: 15px;
-      max-width: 920px;
+      max-width: 1350px;
       margin: 0 auto;
     }
 
@@ -55,10 +55,10 @@
       font-weight: bold;
     }
 
-    /* Szélesebb szélvédő (540x540) */
+    /* Dupla széles panoráma szélvédő (1080x540) */
     .windshield {
       position: relative;
-      width: 540px;
+      width: 1080px;
       height: 540px;
       margin: 0 auto;
       background: #000;
@@ -75,39 +75,39 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(3, 55px);
-      gap: 6px;
+      grid-template-columns: repeat(3, 65px);
+      gap: 8px;
       justify-content: center;
-      margin-top: 8px;
+      margin-top: 10px;
     }
 
     .control-btn {
-      background: rgba(0, 255, 204, 0.2);
+      background: rgba(0, 255, 204, 0.25);
       border: 1px solid #00ffcc;
       color: #00ffcc;
-      font-size: 1.1rem;
-      padding: 8px;
+      font-size: 1.2rem;
+      padding: 12px;
       border-radius: 6px;
       cursor: pointer;
       user-select: none;
     }
 
     .control-btn:active {
-      background: rgba(0, 255, 204, 0.6);
-      box-shadow: 0 0 12px #00ffcc;
+      background: rgba(0, 255, 204, 0.7);
+      box-shadow: 0 0 15px #00ffcc;
     }
 
     .empty-btn { visibility: hidden; }
 
-    .action-buttons { margin-top: 8px; }
+    .action-buttons { margin-top: 10px; }
 
     .btn {
       background: #0088ff;
       color: white;
       border: none;
-      padding: 6px 12px;
+      padding: 8px 16px;
       font-family: 'Courier New', Courier, monospace;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       border-radius: 4px;
       cursor: pointer;
     }
@@ -150,7 +150,7 @@
 </head>
 <body>
 
-  <h1>MÁTRIX ŰRSIKLÓ — GALAKTIKUS KÜLDETÉS</h1>
+  <h1>MÁTRIX ŰRSIKLÓ — PANORÁMA KÜLDETÉS</h1>
 
   <div class="cockpit-container">
     
@@ -162,7 +162,7 @@
       </div>
 
       <div class="windshield">
-        <canvas id="flightCanvas" width="540" height="540"></canvas>
+        <canvas id="flightCanvas" width="1080" height="540"></canvas>
       </div>
 
       <div class="controls">
@@ -217,19 +217,11 @@
       { bg: '#2b0000', grid: 'rgba(255, 50, 50, 0.12)', ast: '#ff3333', ship: '#ffff00' }
     ];
 
-    // Többszínű kristály paletta (színek és fények)
     const crystalColors = [
-      '#ff00ff', // Magenta
-      '#00ffff', // Cián
-      '#ffff00', // Sárga
-      '#ff3300', // Narancs
-      '#66ff33', // Zöld
-      '#9933ff', // Lila
-      '#ff66b2', // Rózsaszín
-      '#00ff99'  // Türkiz
+      '#ff00ff', '#00ffff', '#ffff00', '#ff3300', '#66ff33', '#9933ff', '#ff66b2', '#00ff99'
     ];
 
-    // Finomabb, dallamosabb Web Audio API hangok
+    // Erősebb, határozottabb Web Audio API hangmotor (magasabb hangerő + torzítottabb retró szinti)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function playSound(type) {
@@ -239,55 +231,59 @@
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
+      
       osc.connect(gainNode);
       gainNode.connect(audioCtx.destination);
 
       if (type === 'move') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(450, now);
-        gainNode.gain.setValueAtTime(0.04, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.type = 'square'; // Határozottabb hullámforma
+        osc.frequency.setValueAtTime(220, now);
+        gainNode.gain.setValueAtTime(0.15, now); // Magasabb hangerő
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.start(now);
-        osc.stop(now + 0.05);
+        osc.stop(now + 0.08);
       } else if (type === 'crystal') {
-        // Kellemes, magas tónusú csilingelő akkord
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.06); // E5
-        osc.frequency.setValueAtTime(783.99, now + 0.12); // G5
-        gainNode.gain.setValueAtTime(0.12, now);
+        // Hangos, csilingelő arpeggio akkord
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.08);
+        osc.frequency.setValueAtTime(783.99, now + 0.16);
+        osc.frequency.setValueAtTime(1046.50, now + 0.24);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      } else if (type === 'hit') {
+        // Erős robbanás / ütközés hang
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.linearRampToValueAtTime(30, now + 0.3);
+        gainNode.gain.setValueAtTime(0.4, now);
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
-      } else if (type === 'hit') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120, now);
-        osc.frequency.linearRampToValueAtTime(30, now + 0.2);
-        gainNode.gain.setValueAtTime(0.15, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        osc.start(now);
-        osc.stop(now + 0.2);
       } else if (type === 'gate') {
+        // Diadalmas kapunyitási dallam
         osc.type = 'sine';
         osc.frequency.setValueAtTime(440, now);
-        osc.frequency.setValueAtTime(554.37, now + 0.1);
-        osc.frequency.setValueAtTime(659.25, now + 0.2);
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
-        gainNode.gain.setValueAtTime(0.15, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.frequency.setValueAtTime(554.37, now + 0.12);
+        osc.frequency.setValueAtTime(659.25, now + 0.24);
+        osc.frequency.setValueAtTime(880, now + 0.36);
+        gainNode.gain.setValueAtTime(0.35, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
         osc.start(now);
-        osc.stop(now + 0.5);
+        osc.stop(now + 0.6);
       }
     }
 
-    // Nagyobb rács a szélesebb szélvédőhöz (13x13)
-    let gridWidth = 13;
-    let gridHeight = 13;
+    // Panoráma rácsméret (szélesebb oszlopszám)
+    let gridWidth = 20;
+    let gridHeight = 10;
 
-    let ship = { x: 6, y: 11, dir: 'UP' };
+    let ship = { x: 10, y: 8, dir: 'UP' };
     let obstacles = [];
     let crystals = [];
-    let goal = { x: 6, y: 1 };
+    let goal = { x: 10, y: 1 };
     let animPulse = 0;
 
     function initSector() {
@@ -297,17 +293,17 @@
 
       let safePath = {};
       
-      // 7 db különböző pozíciójú és színű energiakristály
+      // 7 db kristály elhelyezése a széles téren
       let cPositions = [
-        { x: 3, y: 8 }, { x: 9, y: 8 },
-        { x: 2, y: 5 }, { x: 10, y: 5 },
-        { x: 4, y: 3 }, { x: 8, y: 3 },
-        { x: 6, y: 6 }
+        { x: 4, y: 6 }, { x: 15, y: 6 },
+        { x: 3, y: 4 }, { x: 17, y: 4 },
+        { x: 7, y: 3 }, { x: 13, y: 3 },
+        { x: 10, y: 5 }
       ];
 
       cPositions.forEach((pos, idx) => {
         let cx = Math.max(1, Math.min(gridWidth - 2, pos.x + (Math.floor(Math.random() * 3) - 1)));
-        let cy = Math.max(2, Math.min(gridHeight - 3, pos.y + (Math.floor(Math.random() * 3) - 1)));
+        let cy = Math.max(2, Math.min(gridHeight - 2, pos.y + (Math.floor(Math.random() * 3) - 1)));
         let color = crystalColors[idx % crystalColors.length];
         crystals.push({ x: cx, y: cy, color: color, collected: false });
       });
@@ -335,12 +331,12 @@
       safePath[`${goal.x},${goal.y}`] = true;
       crystals.forEach(c => safePath[`${c.x},${c.y}`] = true);
 
-      let count = 20 + (level * 3);
-      if (count > 45) count = 45;
+      let count = 25 + (level * 4);
+      if (count > 60) count = 60;
 
       for (let i = 0; i < count; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
-        let oy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
+        let oy = Math.floor(Math.random() * (gridHeight - 1)) + 1;
         let key = `${ox},${oy}`;
         if (!safePath[key]) {
           obstacles.push({ x: ox, y: oy });
@@ -437,15 +433,16 @@
         ctx.moveTo(i * tileSize, 0);
         ctx.lineTo(i * tileSize, canvas.height);
         ctx.stroke();
-
+      }
+      for (let j = 0; j <= gridHeight; j++) {
         ctx.beginPath();
-        ctx.moveTo(0, i * tileSize);
-        ctx.lineTo(canvas.width, i * tileSize);
+        ctx.moveTo(0, j * tileSize);
+        ctx.lineTo(canvas.width, j * tileSize);
         ctx.stroke();
       }
 
       ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < 45; i++) {
+      for (let i = 0; i < 50; i++) {
         let sx = (i * 31 + steps * 3) % canvas.width;
         let sy = (i * 47 + steps * 6) % canvas.height;
         ctx.fillRect(sx, sy, 1.8, 1.8);
@@ -468,7 +465,6 @@
       ctx.arc(gateX, gateY, tileSize / 5.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Többszínű kristályok kirajzolása
       crystals.forEach(c => {
         if (!c.collected) {
           let cx = (c.x + 0.5) * tileSize;
@@ -527,7 +523,7 @@
           playSound('hit');
           score = Math.max(0, score - 10);
           alert("Ütközés az aszteroidával! Vissza a bázisra.");
-          ship.x = 6; ship.y = 11; ship.dir = 'UP';
+          ship.x = 10; ship.y = 8; ship.dir = 'UP';
           initSector();
         } else {
           ship.x = nx;
@@ -537,7 +533,7 @@
           crystals.forEach(c => {
             if (!c.collected && c.x === ship.x && c.y === ship.y) {
               c.collected = true;
-              score += 20;
+              score += 25;
               playSound('crystal');
             }
           });
@@ -546,11 +542,11 @@
             let allCollected = crystals.every(c => c.collected);
             if (allCollected) {
               playSound('gate');
-              score += 120;
+              score += 150;
               level++;
               checkPlushieReward();
-              alert("Fantasztikus navigáció! Kapu kinyitva, új galaktikus színvilág elérve!");
-              ship.x = 6; ship.y = 11; ship.dir = 'UP';
+              alert("Fantasztikus panoráma navigáció! Kapu kinyitva, új galaktikus szektor elérve!");
+              ship.x = 10; ship.y = 8; ship.dir = 'UP';
               initSector();
             } else {
               alert("A galaktikus kapu zárva van! Előbb gyűjtsd össze az összes energiakristályt!");
@@ -573,7 +569,7 @@
       if (confirm("Biztosan nullázod a repülési naplót?")) {
         localStorage.clear();
         score = 0; steps = 0; level = 1; plushies = [];
-        ship = { x: 6, y: 11, dir: 'UP' };
+        ship = { x: 10, y: 8, dir: 'UP' };
         initSector();
         updateHUD();
         drawFlight();
