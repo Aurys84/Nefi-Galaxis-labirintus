@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Mátrix Űrsikló - 3D Galaktikus Navigáció</title>
+  <title>Mátrix Űrsikló - 3D Galaktikus Küldetés</title>
   <style>
     body {
       background-color: #02040a;
@@ -47,7 +47,7 @@
       border-radius: 6px;
       padding: 6px;
       margin-bottom: 8px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .stats span {
@@ -149,14 +149,14 @@
 </head>
 <body>
 
-  <h1>MÁTRIX ŰRSIKLÓ — 3D GALAKTIKUS NAVIGÁCIÓ</h1>
+  <h1>MÁTRIX ŰRSIKLÓ — KRISTÁLY KÜLDETÉS</h1>
 
   <div class="cockpit-container">
     
     <div class="cockpit-frame">
       <div class="dashboard-panel">
         <div>Pont: <span id="scoreVal">0</span></div>
-        <div>Lépések: <span id="stepsVal">0</span></div>
+        <div>Kristály: <span id="crystalsVal">0/3</span></div>
         <div>Galaxis: <span id="levelVal">1</span></div>
       </div>
 
@@ -213,41 +213,48 @@
 
     let ship = { x: 5, y: 9, dir: 'UP' };
     let obstacles = [];
+    let crystals = [];
     let goal = { x: 5, y: 1 };
+    let gateOpen = false;
+
+    // Vizuális animációs számlálók
+    let animPulse = 0;
 
     function initSector() {
       obstacles = [];
+      crystals = [];
+      gateOpen = false;
       goal = { x: Math.floor(Math.random() * (gridWidth - 2)) + 1, y: 1 };
-      
-      // Biztosítunk egy garantált szabad út-vonalat (hogy ne lehessen beszorulni)
-      let cx = ship.x;
-      let cy = ship.y;
-      
-      let safePath = {};
-      safePath[`${cx},${cy}`] = true;
 
-      while (cx !== goal.x || cy !== goal.y) {
-        if (cx < goal.x) cx++;
-        else if (cx > goal.x) cx--;
-        else if (cy > goal.y) cy--;
-        safePath[`${cx},${cy}`] = true;
+      // 3 db energiakristály elhelyezése a pályán
+      let crystalCount = 3;
+      while (crystals.length < crystalCount) {
+        let cx = Math.floor(Math.random() * gridWidth);
+        let cy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
+        if (!(cx === ship.x && cy === ship.y) && !(cx === goal.x && cy === goal.y)) {
+          if (!crystals.some(c => c.x === cx && c.y === cy)) {
+            crystals.push({ x: cx, y: cy, collected: false });
+          }
+        }
       }
 
-      // Véletlenszerű nehezítő akadályok, de a safePath-et soha nem zárjuk el
-      let count = 16 + level * 2;
+      // Akadályok
+      let count = 14 + level * 2;
       for (let i = 0; i < count; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
         let oy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
-        let key = `${ox},${oy}`;
-        if (!safePath[key] && !(ox === ship.x && oy === ship.y)) {
-          obstacles.push({ x: ox, y: oy });
+        if (!(ox === ship.x && oy === ship.y) && !(ox === goal.x && oy === goal.y)) {
+          if (!crystals.some(c => c.x === ox && c.y === oy)) {
+            obstacles.push({ x: ox, y: oy });
+          }
         }
       }
     }
 
     function updateHUD() {
+      let collectedCount = crystals.filter(c => c.collected).length;
       document.getElementById('scoreVal').innerText = score;
-      document.getElementById('stepsVal').innerText = steps;
+      document.getElementById('crystalsVal').innerText = `${collectedCount}/${crystals.length}`;
       document.getElementById('levelVal').innerText = level;
 
       let shelf = document.getElementById('plushieShelf');
@@ -278,13 +285,11 @@
       else if (dir === 'LEFT') ctx.rotate(-Math.PI / 2);
       else if (dir === 'RIGHT') ctx.rotate(Math.PI / 2);
 
-      // 3D hatású árnyék a hajó alatt
       ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
       ctx.beginPath();
       ctx.ellipse(0, size * 0.4, size * 0.8, size * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Részletes űrsikló test (Metál kék / cián 3D shadeléssel)
       let grad = ctx.createLinearGradient(-size, -size, size, size);
       grad.addColorStop(0, '#00ffff');
       grad.addColorStop(0.5, '#0088ff');
@@ -303,13 +308,11 @@
       ctx.shadowColor = '#00ffff';
       ctx.fill();
 
-      // 3D Kabin üveg (Narancs-arany ragyogás)
       ctx.fillStyle = '#ffaa00';
       ctx.beginPath();
       ctx.arc(0, -size * 0.2, size * 0.28, 0, Math.PI * 2);
       ctx.fill();
 
-      // Ion hajtómű pulzáló láng
       ctx.fillStyle = '#ff0066';
       ctx.shadowColor = '#ff0066';
       ctx.beginPath();
@@ -325,8 +328,9 @@
     function drawFlight() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let tileSize = canvas.width / gridWidth;
+      animPulse += 0.08;
 
-      // 3D Holografikus talaj-rács vonalak
+      // Háttér rács
       ctx.strokeStyle = 'rgba(0, 255, 204, 0.08)';
       ctx.lineWidth = 1;
       for (let i = 0; i <= gridWidth; i++) {
@@ -341,7 +345,7 @@
         ctx.stroke();
       }
 
-      // Háttér csillagok
+      // Csillagok
       ctx.fillStyle = '#ffffff';
       for (let i = 0; i < 35; i++) {
         let sx = (i * 31 + steps * 3) % canvas.width;
@@ -349,23 +353,45 @@
         ctx.fillRect(sx, sy, 1.5, 1.5);
       }
 
-      // Galaktikus Kapu (3D pulzáló cél)
+      // Galaktikus Kapu (Zárva piros, Nyitva pulzáló zöld/lila animáció)
       let gateX = (goal.x + 0.5) * tileSize;
       let gateY = (goal.y + 0.5) * tileSize;
-      ctx.fillStyle = '#ff00ff';
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#ff00ff';
+      let allCollected = crystals.every(c => c.collected);
+
+      ctx.shadowBlur = allCollected ? 30 : 15;
+      ctx.shadowColor = allCollected ? '#00ffcc' : '#ff0055';
+      ctx.fillStyle = allCollected ? '#00ffcc' : '#ff0033';
       ctx.beginPath();
-      ctx.arc(gateX, gateY, tileSize / 2.2, 0, Math.PI * 2);
+      let pulseSize = tileSize / 2.2 + (allCollected ? Math.sin(animPulse) * 4 : 0);
+      ctx.arc(gateX, gateY, Math.max(5, pulseSize), 0, Math.PI * 2);
       ctx.fill();
 
-      // Belső mag
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(gateX, gateY, tileSize / 5, 0, Math.PI * 2);
+      ctx.arc(gateX, gateY, tileSize / 6, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3D Aszteroidák / Akadályok (gömb alakú fényes csomók)
+      // Lebegő energiakristályok animációval
+      crystals.forEach(c => {
+        if (!c.collected) {
+          let cx = (c.x + 0.5) * tileSize;
+          let cy = (c.y + 0.5) * tileSize + Math.sin(animPulse * 2 + c.x) * 3;
+
+          ctx.fillStyle = '#ff00ff';
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = '#ff00ff';
+          ctx.beginPath();
+          ctx.arc(cx, cy, tileSize / 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(cx, cy, tileSize / 7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // Akadályok
       obstacles.forEach(obs => {
         let ox = (obs.x + 0.5) * tileSize;
         let oy = (obs.y + 0.5) * tileSize;
@@ -383,7 +409,7 @@
         ctx.fill();
       });
 
-      // Űrsikló kirajzolása
+      // Űrsikló
       let cx = (ship.x + 0.5) * tileSize;
       let cy = (ship.y + 0.5) * tileSize;
       drawSpaceship3D(cx, cy, tileSize / 2.2, ship.dir);
@@ -405,18 +431,34 @@
           score = Math.max(0, score - 5);
           alert("Ütközés az aszteroidával! Vissza a bázisra.");
           ship.x = 5; ship.y = 9; ship.dir = 'UP';
+          initSector(); // Újraindítja a szektort
         } else {
           ship.x = nx;
           ship.y = ny;
           steps++;
 
+          // Kristály felvétele animációs logikával
+          crystals.forEach(c => {
+            if (!c.collected && c.x === ship.x && c.y === ship.y) {
+              c.collected = true;
+              score += 15;
+              // Kis vizuális visszajelzés
+            }
+          });
+
+          // Kapu elérése
           if (ship.x === goal.x && ship.y === goal.y) {
-            score += 50;
-            level++;
-            checkPlushieReward();
-            alert("Kiváló 3D navigáció! Új galaktikus szektor elérve!");
-            ship.x = 5; ship.y = 9; ship.dir = 'UP';
-            initSector();
+            let allCollected = crystals.every(c => c.collected);
+            if (allCollected) {
+              score += 60;
+              level++;
+              checkPlushieReward();
+              alert("Fantasztikus navigáció! Kapu kinyitva, új galaxis elérve!");
+              ship.x = 5; ship.y = 9; ship.dir = 'UP';
+              initSector();
+            } else {
+              alert("A galaktikus kapu zárva van! Előbb gyűjtsd össze az összes energiakristályt!");
+            }
           }
         }
         updateHUD();
@@ -451,7 +493,11 @@
 
     initSector();
     updateHUD();
-    drawFlight();
+    
+    // Folyamatos render loop a pulzáló animációkhoz
+    setInterval(() => {
+      drawFlight();
+    }, 50);
   </script>
 </body>
 </html>
