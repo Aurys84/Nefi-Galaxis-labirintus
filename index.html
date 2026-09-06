@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="hu">
 <head>
   <meta charset="UTF-8">
-  <title>Mátrix Űrsikló - Galaktikus Repülés</title>
+  <title>Mátrix Űrsikló - Galaktikus Navigáció</title>
   <style>
     body {
       background-color: #020610;
@@ -23,7 +22,7 @@
     }
 
     .cockpit-frame {
-      max-width: 600px;
+      max-width: 680px;
       margin: 0 auto;
       background: radial-gradient(circle, #0f1c2d 0%, #020610 100%);
       border: 3px solid #00ffcc;
@@ -51,8 +50,8 @@
 
     .windshield {
       position: relative;
-      width: 320px;
-      height: 320px;
+      width: 480px;
+      height: 480px;
       margin: 0 auto;
       background: #000;
       border: 3px solid rgba(0, 255, 204, 0.9);
@@ -68,7 +67,7 @@
 
     .controls {
       display: grid;
-      grid-template-columns: repeat(3, 55px);
+      grid-template-columns: repeat(3, 60px);
       gap: 6px;
       justify-content: center;
       margin-top: 8px;
@@ -132,16 +131,17 @@
 <body>
 
   <div class="cockpit-frame">
-    <h1>MÁTRIX ŰRSIKLÓ — GALAKTIKUS REPTETŐ</h1>
+    <h1>MÁTRIX ŰRSIKLÓ — GALAKTIKUS NAVIGÁCIÓ</h1>
     
     <div class="dashboard-panel">
       <div>Pont: <span id="scoreVal">0</span></div>
-      <div>Táv (Lépés): <span id="stepsVal">0</span></div>
+      <div>Lépések: <span id="stepsVal">0</span></div>
       <div>Galaxis: <span id="levelVal">1</span></div>
     </div>
 
     <div class="windshield">
-      <canvas id="flightCanvas" width="320" height="320"></canvas>
+      <!-- 2x nagyobb felbontású szélvédő vászon (480x480) -->
+      <canvas id="flightCanvas" width="480" height="480"></canvas>
     </div>
 
     <div class="controls">
@@ -174,22 +174,22 @@
 
     const plushieIcons = ['🧸', '🤖', '🐱', '🦄', '🚀', '⭐', '💎', '👑', '🛸', '🪐'];
 
-    // Űrsikló pozíció a szélvédőn (X, Y)
-    let ship = { x: 4, y: 7 };
-    let gridWidth = 9;
-    let gridHeight = 9;
+    // 12x12-es nagyobb rács a tágasabb szélvédőhöz
+    let gridWidth = 12;
+    let gridHeight = 12;
 
-    // Galaktikus útvonal akadályok és csillagkapuk generálása
+    let ship = { x: 6, y: 10, dir: 'UP' }; // Kezdő pozíció és nézési irány ('UP', 'DOWN', 'LEFT', 'RIGHT')
     let obstacles = [];
-    let goal = { x: 4, y: 0 };
+    let goal = { x: 6, y: 0 };
 
     function initSector() {
       obstacles = [];
-      // Generálunk véletlenszerű aszteroidákat / útvonal akadályokat a szélvédőre
-      for (let i = 0; i < 12 + level * 2; i++) {
+      // Több akadály a nehezebb, izgalmasabb kihívásért
+      let obstacleCount = 15 + level * 3;
+      for (let i = 0; i < obstacleCount; i++) {
         let ox = Math.floor(Math.random() * gridWidth);
         let oy = Math.floor(Math.random() * (gridHeight - 2)) + 1;
-        if (!(ox === 4 && oy === 7)) { // Ne a hajóra essen
+        if (!(ox === 6 && oy === 10)) {
           obstacles.push({ x: ox, y: oy });
         }
       }
@@ -218,68 +218,87 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let tileSize = canvas.width / gridWidth;
 
-      // Háttér csillagok mozgás hatása
+      // Háttér csillagok
       ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < 20; i++) {
-        let sx = (i * 37 + steps * 5) % canvas.width;
-        let sy = (i * 53 + steps * 10) % canvas.height;
-        ctx.fillRect(sx, sy, 1.5, 1.5);
+      for (let i = 0; i < 30; i++) {
+        let sx = (i * 41 + steps * 4) % canvas.width;
+        let sy = (i * 59 + steps * 8) % canvas.height;
+        ctx.fillRect(sx, sy, 1.8, 1.8);
       }
 
-      // Galaktikus Kapu (Cél a szélvédő tetején)
+      // Galaktikus Kapu (Cél)
       ctx.fillStyle = '#ff00ff';
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 18;
       ctx.shadowColor = '#ff00ff';
-      ctx.fillRect(goal.x * tileSize + 2, goal.y * tileSize + 2, tileSize - 4, tileSize - 4);
+      ctx.fillRect(goal.x * tileSize + 4, goal.y * tileSize + 4, tileSize - 8, tileSize - 8);
 
       // Aszteroidák / Akadályok
       ctx.fillStyle = '#0088ff';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.shadowColor = '#0088ff';
       obstacles.forEach(obs => {
         ctx.beginPath();
-        ctx.arc((obs.x + 0.5) * tileSize, (obs.y + 0.5) * tileSize, tileSize / 2.5, 0, Math.PI * 2);
+        ctx.arc((obs.x + 0.5) * tileSize, (obs.y + 0.5) * tileSize, tileSize / 2.8, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // Saját Űrsikló a szélvédő alján
+      // Űrsikló kirajzolása a pontos irányba fordulva
       ctx.fillStyle = '#00ffff';
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#00ffff';
-      ctx.beginPath();
+      
       let cx = (ship.x + 0.5) * tileSize;
       let cy = (ship.y + 0.5) * tileSize;
-      ctx.moveTo(cx, cy - tileSize / 2);
-      ctx.lineTo(cx - tileSize / 2, cy + tileSize / 2);
-      ctx.lineTo(cx + tileSize / 2, cy + tileSize / 2);
+      let size = tileSize / 2.2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // Elforgatás az irány alapján
+      if (ship.dir === 'DOWN') ctx.rotate(Math.PI);
+      else if (ship.dir === 'LEFT') ctx.rotate(-Math.PI / 2);
+      else if (ship.dir === 'RIGHT') ctx.rotate(Math.PI / 2);
+      // 'UP' esetén nincs forgatás (0 fok)
+
+      ctx.beginPath();
+      ctx.moveTo(0, -size);       // Orr
+      ctx.lineTo(-size, size);    // Bal sarok
+      ctx.lineTo(0, size * 0.6);  // Farok bemélyedés
+      ctx.lineTo(size, size);     // Jobb sarok
       ctx.closePath();
       ctx.fill();
+
+      ctx.restore();
       ctx.shadowBlur = 0;
     }
 
     function moveShip(dx, dy) {
+      // Irány beállítása a mozgásnak megfelelően
+      if (dx === 0 && dy === -1) ship.dir = 'UP';
+      else if (dx === 0 && dy === 1) ship.dir = 'DOWN';
+      else if (dx === -1 && dy === 0) ship.dir = 'LEFT';
+      else if (dx === 1 && dy === 0) ship.dir = 'RIGHT';
+
       let nx = ship.x + dx;
       let ny = ship.y + dy;
 
       if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
-        // Ellenőrizzük, hogy ütközik-e akadállyal
         let hit = obstacles.some(o => o.x === nx && o.y === ny);
         if (hit) {
           score = Math.max(0, score - 5);
-          alert("Figyelem! Aszteroida érintés! Óvatosabban a kormánnyal!");
-          ship.x = 4; ship.y = 7; // Vissza indulóba
+          alert("Ütközés az aszteroidával! Vissza a bázisra!");
+          ship.x = 6; ship.y = 10; ship.dir = 'UP';
         } else {
           ship.x = nx;
           ship.y = ny;
           steps++;
 
-          // Elérte a kaput?
           if (ship.x === goal.x && ship.y === goal.y) {
-            score += 35;
+            score += 40;
             level++;
             checkPlushieReward();
-            alert("Sikeres galaktikus ugrás! Következő szektor!");
-            ship.x = 4; ship.y = 7;
+            alert("Gratulálok! Sikeresen átléptél a következő galaktikus szektorba!");
+            ship.x = 6; ship.y = 10; ship.dir = 'UP';
             initSector();
           }
         }
@@ -299,7 +318,7 @@
       if (confirm("Biztosan nullázod a repülési naplót?")) {
         localStorage.clear();
         score = 0; steps = 0; level = 1; plushies = [];
-        ship = { x: 4, y: 7 };
+        ship = { x: 6, y: 10, dir: 'UP' };
         initSector();
         updateHUD();
         drawFlight();
